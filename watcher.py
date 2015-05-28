@@ -1,4 +1,5 @@
 #!/bin/python
+from __future__ import print_function
 import easywatch
 import argparse
 import os
@@ -18,7 +19,15 @@ parser.add_argument( '--skip-filename', dest='skip_filename', help='Glob compare
 parser.add_argument( '--skip-regex', dest='skip_regex', help='Regex compared to the entire (relative) path', nargs='*' )
 parser.add_argument( '--run-relative', dest='run_relative', help='Run the command in the watched directory', action='store_true' )
 
-parser.set_defaults( skip_dot=True, skip_directory=True, actions=['created', 'modified'], initial_run=False, run_relative=False )
+parser.add_argument( '--prefix', dest='print_prefix', help='Prefix for information log.' )
+
+parser.add_argument( '--no-color', dest='color', action='store_false' )
+
+parser.add_argument( '--skip-color', dest='skipcolor' )
+parser.add_argument( '--start-color', dest='startcolor' )
+parser.add_argument( '--done-color', dest='donecolor' )
+
+parser.set_defaults( skip_dot=True, skip_directory=True, actions=['created', 'modified'], initial_run=False, run_relative=False, color=True, skipcolor='blue', startcolor='green', donecolor='cyan', print_prefix='>>> ' )
 
 args = parser.parse_args()
 skip_regexes = []
@@ -33,6 +42,25 @@ for n in args.skip_regex:
     _regex = re.compile( n )
     skip_regexes.append( ( _regex, 'matches regex "%s"' % n ) )
 
+#Color text
+def print_prefix( n ):
+    return args.print_prefix + n
+
+if args.color:
+    try:
+        from termcolor import cprint
+        print_skip = lambda n: cprint( print_prefix( n ), args.skipcolor )
+        print_start = lambda n: cprint( print_prefix( n ), args.startcolor )
+        print_done = lambda n: cprint( print_prefix( n ), args.donecolor )
+    except:
+        print( 'Error during loading of colors, continuing without them' )
+        args.color = False
+
+if not args.color:
+    print_skip = lambda n: print( print_prefix( n ) )
+    print_start = lambda n: print( print_prefix( n ) )
+    print_done = lambda n: print( print_prefix( n ) )
+
 #Watchdog code
 def run():
     if args.run_relative:
@@ -42,24 +70,27 @@ def run():
 
 def onUpdate( action, filename ):
     if action not in args.actions:
-        print( 'Skipping %s action on %s' % ( action, filename ) )
+        print_skip( 'Skipping %s action on %s' % ( action, filename ) )
         return
 
     if args.skip_directory and not os.path.isfile( filename ):
-        print( 'Skipping %s action on %s, is a directory' % ( action, filename ) )
+        print_skip( 'Skipping %s action on %s, is a directory' % ( action, filename ) )
         return
     
     for n in skip_regexes:
         regex, reason = n
 
         if regex.match( filename ):
-            print( 'Skipping %s action on %s, %s' % ( action, filename, reason ) )
+            print_skip( 'Skipping %s action on %s, %s' % ( action, filename, reason ) )
             return
 
-    print( 'Updating for %s action on %s.' % ( action, filename ) )
+    print_start( 'Updating for %s action on %s.' % ( action, filename ) )
     run()
+    print_done( 'Done running command.' )
 
 if args.initial_run:
+    print_start( 'Doing initial run.' )
     run()
+    print_done( 'Beginning with watching.' )
 
 easywatch.watch( args.path, onUpdate )
