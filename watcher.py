@@ -35,12 +35,14 @@ skip_regexes = []
 if args.skip_dot:
     skip_regexes.append( ( re.compile( '.*/\..*' ), 'starts with a dot' ) )
 
-for n in args.skip_filename:
-    _regex = re.compile( n.replace( '*', '.*' ) )
-    skip_regexes.append( ( _regex, 'matches filename "%s"' % n ) )
-for n in args.skip_regex:
-    _regex = re.compile( n )
-    skip_regexes.append( ( _regex, 'matches regex "%s"' % n ) )
+if args.skip_filename is not None:
+    for n in args.skip_filename:
+        _regex = re.compile( n.replace( '*', '.*' ) )
+        skip_regexes.append( ( _regex, 'matches filename "%s"' % n ) )
+if args.skip_regex is not None:
+    for n in args.skip_regex:
+        _regex = re.compile( n )
+        skip_regexes.append( ( _regex, 'matches regex "%s"' % n ) )
 
 #Color text
 def print_prefix( n ):
