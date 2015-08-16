@@ -15,8 +15,8 @@ parser.add_argument( '--no-skip-dotfiles', dest='skip_dot', action='store_false'
 parser.add_argument( '--no-skip-directory', dest='skip_directory', action='store_false', help='Trigger on directories.' )
 parser.add_argument( '--initial-run', dest='initial_run', action='store_true', help='Do a run on startup, before setting up watching.' )
 parser.add_argument( '--watch-actions', dest='actions', help='What actions to trigger on', choices=['created', 'modified', 'deleted'] )
-parser.add_argument( '--skip-filename', dest='skip_filename', help='Glob compared to the filename.', nargs='*' )
-parser.add_argument( '--skip-regex', dest='skip_regex', help='Regex compared to the entire (relative) path', nargs='*' )
+parser.add_argument( '--skip-filename', dest='skip_filename', help='Glob compared to the filename.', action='append' )
+parser.add_argument( '--skip-regex', dest='skip_regex', help='Regex compared to the entire (relative) path', action='append' )
 parser.add_argument( '--run-relative', dest='run_relative', help='Run the command in the watched directory', action='store_true' )
 
 parser.add_argument( '--prefix', dest='print_prefix', help='Prefix for information log.' )
@@ -37,7 +37,7 @@ if args.skip_dot:
 
 if args.skip_filename is not None:
     for n in args.skip_filename:
-        _regex = re.compile( n.replace( '*', '.*' ) )
+        _regex = re.compile( '^./*' + n.replace( '*', '.*' ) )
         skip_regexes.append( ( _regex, 'matches filename "%s"' % n ) )
 if args.skip_regex is not None:
     for n in args.skip_regex:
