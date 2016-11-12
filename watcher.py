@@ -18,6 +18,7 @@ parser.add_argument( '--watch-actions', dest='actions', help='What actions to tr
 parser.add_argument( '--skip-filename', dest='skip_filename', help='Glob compared to the filename.', action='append' )
 parser.add_argument( '--skip-regex', dest='skip_regex', help='Regex compared to the entire (relative) path', action='append' )
 parser.add_argument( '--run-relative', dest='run_relative', help='Run the command in the watched directory', action='store_true' )
+parser.add_argument( '--run-wait-time', dest='run_wait_time', help='After running, ignore events for this many seconds (default 2)' )
 
 parser.add_argument( '--prefix', dest='print_prefix', help='Prefix for information log.' )
 
@@ -27,10 +28,11 @@ parser.add_argument( '--skip-color', dest='skipcolor' )
 parser.add_argument( '--start-color', dest='startcolor' )
 parser.add_argument( '--done-color', dest='donecolor' )
 
-parser.set_defaults( skip_dot=True, skip_directory=True, actions=['created', 'modified'], initial_run=False, run_relative=False, color=True, skipcolor='blue', startcolor='green', donecolor='cyan', print_prefix='>>> ' )
+parser.set_defaults( skip_dot=True, skip_directory=True, actions=['created', 'modified'], initial_run=False, run_wait_time=2.0, run_relative=False, color=True, skipcolor='blue', startcolor='green', donecolor='cyan', print_prefix='>>> ' )
 
 args = parser.parse_args()
 skip_regexes = []
+float(args.run_wait_time)
 
 if args.skip_dot:
     skip_regexes.append( ( re.compile( '.*/\..*' ), 'starts with a dot' ) )
@@ -70,7 +72,15 @@ def run():
     else:
         call( args.command )
 
+import time
+nextRunTime = time.time()
+
 def onUpdate( action, filename ):
+    global nextRunTime
+    if time.time() - nextRunTime < 0:
+        print_skip( 'Skipping %s action on %s, timeout from last run (%.02f)' % ( action, filename, nextRunTime - time.time() ) )
+        return
+
     if action not in args.actions:
         print_skip( 'Skipping %s action on %s' % ( action, filename ) )
         return
@@ -88,6 +98,7 @@ def onUpdate( action, filename ):
 
     print_start( 'Updating for %s action on %s.' % ( action, filename ) )
     run()
+    nextRunTime = time.time() + float(args.run_wait_time)
     print_done( 'Done running command.' )
 
 if args.initial_run:
